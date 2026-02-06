@@ -1,0 +1,26 @@
+package com.sofkify.userservice.domain.ports.in;
+
+import com.sofkify.userservice.domain.model.User;
+import com.sofkify.userservice.domain.model.UserRole;
+
+public interface UserServicePort {
+
+    // Crear nuevo usuario
+    User createUser(String email, String password, String name, UserRole role);
+
+    // Buscar usuario por email
+    User findByEmail(String email);
+
+    // Actualizar perfil de usuario
+    User updateProfile(String userId, String newName, String newEmail);
+
+    // Desactivar usuario
+    void deactivateUser(String userId);
+
+    // Verificar si existe usuario con ese email
+    boolean existsByEmail(String email);
+
+    // Promover cliente a administrador
+    User promoteToAdmin(String userId);
+
+}
