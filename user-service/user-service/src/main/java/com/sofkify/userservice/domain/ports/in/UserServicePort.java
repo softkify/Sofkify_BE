@@ -28,4 +28,7 @@ public interface UserServicePort {
     // Promover cliente a administrador
     User promoteToAdmin(String userId);
 
+    // Autenticar usuario (login)
+    Optional<User> authenticateUser(String email, String password);
+
 }
