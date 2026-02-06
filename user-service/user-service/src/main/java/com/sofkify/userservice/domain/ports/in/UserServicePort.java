@@ -5,8 +5,8 @@ import com.sofkify.userservice.domain.model.UserRole;
 
 public interface UserServicePort {
 
-    // Crear nuevo usuario
-    User createUser(String email, String password, String name, UserRole role);
+    // Crear nuevo usuario (siempre se crea como CLIENTE por regla de negocio)
+    User createUser(String email, String password, String name);
 
     // Buscar usuario por email
     User findByEmail(String email);

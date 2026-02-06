@@ -21,7 +21,7 @@ public class UserService implements UserServicePort {
     }
 
     @Override
-    public User createUser(String email, String password, String name, UserRole role) {
+    public User createUser(String email, String password, String name) {
         // 1. Verificar si ya existe el email
         if (userRepository.existsByEmail(email)) {
             throw new UserAlreadyExistsException("Email ya registrado: " + email);
@@ -74,5 +74,18 @@ public class UserService implements UserServicePort {
     @Override
     public boolean existsByEmail(String email) {
         return userRepository.existsByEmail(email);
+    }
+
+    @Override
+    public User promoteToAdmin(String userId) {
+        // 1. Buscar usuario existente
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado: " + userId));
+
+        // 2. Promover a administrador (el dominio valida reglas)
+        user.promoteToAdmin();
+
+        // 3. Guardar cambios
+        return userRepository.save(user);
     }
 }
