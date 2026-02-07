@@ -1,8 +1,6 @@
 package com.sofkify.userservice.infrastructure.adapters.in.rest;
 
-import com.sofkify.userservice.application.dto.CreateUserRequest;
-import com.sofkify.userservice.application.dto.UpdateUserRequest;
-import com.sofkify.userservice.application.dto.UserResponse;
+import com.sofkify.userservice.application.dto.*;
 import com.sofkify.userservice.application.exception.UserNotFoundException;
 import com.sofkify.userservice.domain.model.User;
 import com.sofkify.userservice.domain.ports.in.UserServicePort;
@@ -10,6 +8,8 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/users")
@@ -76,4 +76,30 @@ public class UserRestController {
                 user.getUpdatedAt()
         );
     }
+
+    @PostMapping("/auth/login")
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+        // 1. Autenticar usuario
+        Optional<User> userOpt = userService.authenticateUser(request.getEmail(), request.getPassword());
+
+        if (userOpt.isEmpty()) {
+            // 2. Credenciales inválidas
+            LoginResponse response = new LoginResponse(false, "Credenciales inválidas");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        }
+
+        // 3. Login exitoso
+        User user = userOpt.get();
+        LoginResponse response = new LoginResponse(
+                true,
+                "Login exitoso",
+                user.getId(),
+                user.getEmail(),
+                user.getName(),
+                user.getRole().name()
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
 }

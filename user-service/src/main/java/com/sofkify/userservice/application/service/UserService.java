@@ -5,6 +5,7 @@ import com.sofkify.userservice.application.exception.UserAlreadyExistsException;
 import com.sofkify.userservice.application.exception.UserNotFoundException;
 import com.sofkify.userservice.domain.model.User;
 import com.sofkify.userservice.domain.model.UserRole;
+import com.sofkify.userservice.domain.model.UserStatus;
 import com.sofkify.userservice.domain.ports.in.UserServicePort;
 import com.sofkify.userservice.domain.ports.out.UserRepositoryPort;
 
@@ -94,5 +95,27 @@ public class UserService implements UserServicePort {
 
         // 3. Guardar cambios
         return userRepository.save(user);
+    }
+
+    @Override
+    public Optional<User> authenticateUser(String email, String password) {
+        // 1. Buscar usuario por email
+        User user = userRepository.findByEmail(email);
+
+        // 2. Si no existe, retornar vacío
+        if (user == null) {
+            return Optional.empty();
+        }
+
+        // 3. Validar contraseña (comparación simple por ahora)
+                if (user.getPassword().equals(password)) {
+            // 4. Solo usuarios activos pueden autenticarse
+            if (user.getStatus() == UserStatus.ACTIVE) {
+                return Optional.of(user);
+            }
+        }
+
+        // 5. Si la contraseña no coincide o está inactivo
+        return Optional.empty();
     }
 }
