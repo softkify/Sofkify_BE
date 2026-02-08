@@ -3,10 +3,12 @@ package com.sofkify.cartservice.infrastructure.adapters.in.rest;
 import com.sofkify.cartservice.application.dto.AddItemRequest;
 import com.sofkify.cartservice.application.dto.CartItemResponse;
 import com.sofkify.cartservice.application.dto.CartResponse;
+import com.sofkify.cartservice.application.dto.UpdateQuantityRequest;
 import com.sofkify.cartservice.domain.model.Cart;
 import com.sofkify.cartservice.domain.model.CartItem;
 import com.sofkify.cartservice.domain.ports.in.AddItemToCartUseCase;
 import com.sofkify.cartservice.domain.ports.in.GetCartUseCase;
+import com.sofkify.cartservice.domain.ports.in.UpdateItemQuantityUseCase;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,10 +22,14 @@ public class CartController {
 
     private final AddItemToCartUseCase addItemToCartUseCase;
     private final GetCartUseCase getCartUseCase;
+    private final UpdateItemQuantityUseCase updateItemQuantityUseCase;
 
-    public CartController(AddItemToCartUseCase addItemToCartUseCase, GetCartUseCase getCartUseCase) {
+    public CartController(AddItemToCartUseCase addItemToCartUseCase, 
+                         GetCartUseCase getCartUseCase,
+                         UpdateItemQuantityUseCase updateItemQuantityUseCase) {
         this.addItemToCartUseCase = addItemToCartUseCase;
         this.getCartUseCase = getCartUseCase;
+        this.updateItemQuantityUseCase = updateItemQuantityUseCase;
     }
 
     /**
@@ -71,6 +77,34 @@ public class CartController {
     @GetMapping
     public ResponseEntity<CartResponse> getCart(@RequestHeader("X-Customer-Id") UUID customerId) {
         Cart cart = getCartUseCase.getCartByCustomerId(customerId);
+        return ResponseEntity.ok(toCartResponse(cart));
+    }
+
+    /**
+     * PUT /api/carts/items/{cartItemId}
+     * 
+     * Headers:
+     * X-Customer-Id: UUID (required) - ID del cliente existente en user-service
+     * Content-Type: application/json
+     * 
+     * Path variable:
+     * cartItemId: UUID (required) - ID del item del carrito a actualizar
+     * 
+     * Body:
+     * {
+     *   "quantity": "Integer (required) - Nueva cantidad mayor a 0"
+     * }
+     * 
+     * Responses:
+     * 200 - Cantidad actualizada exitosamente
+     * 400 - UUID inválido, cantidad inválida, carrito o item no encontrado
+     * 500 - Error interno del servidor
+     */
+    @PutMapping("/items/{cartItemId}")
+    public ResponseEntity<CartResponse> updateItemQuantity(@RequestHeader("X-Customer-Id") UUID customerId,
+                                                           @PathVariable UUID cartItemId,
+                                                           @Valid @RequestBody UpdateQuantityRequest request) {
+        Cart cart = updateItemQuantityUseCase.updateItemQuantity(customerId, cartItemId, request.quantity());
         return ResponseEntity.ok(toCartResponse(cart));
     }
 
