@@ -85,6 +85,23 @@ public class CartController {
     }
 
     /**
+     * GET /api/carts/{cartId}
+     * 
+     * Path variable:
+     * cartId: UUID (required) - ID del carrito a consultar
+     * 
+     * Responses:
+     * 200 - Carrito encontrado exitosamente
+     * 404 - Carrito no encontrado
+     * 500 - Error interno del servidor
+     */
+    @GetMapping("/{cartId}")
+    public ResponseEntity<CartResponse> getCartById(@PathVariable UUID cartId) {
+        Cart cart = getCartUseCase.getCartById(cartId);
+        return ResponseEntity.ok(toCartResponse(cart));
+    }
+
+    /**
      * PUT /api/carts/items/{cartItemId}
      * 
      * Headers:

@@ -12,16 +12,21 @@ import java.util.UUID;
 @Service
 @Transactional(readOnly = true)
 public class GetCartService implements GetCartUseCase {
-
     private final CartRepositoryPort cartRepository;
-
+    
     public GetCartService(CartRepositoryPort cartRepository) {
         this.cartRepository = cartRepository;
     }
-
+    
     @Override
     public Cart getCartByCustomerId(UUID customerId) {
         return cartRepository.findByCustomerId(customerId)
                 .orElseThrow(() -> new CartException("Cart not found for customer: " + customerId));
+    }
+    
+    @Override
+    public Cart getCartById(UUID cartId) {
+        return cartRepository.findById(cartId)
+                .orElseThrow(() -> new CartException("Cart not found: " + cartId));
     }
 }
