@@ -34,3 +34,6 @@ build/
 *.log
 *.log.*
 logs/
+
+### Docker ###
+.dockerignore
