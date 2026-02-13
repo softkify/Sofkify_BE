@@ -83,3 +83,88 @@ Para cada hallazgo se debe documentar:
 - **Ser objetivo** y basarse en principios establecidos
 - **Priorizar impacto** sobre preferencias personales
 - **Validar con arquitecto** antes de finalizar reporte
+
+## 2. Fase 2: Refactorización Dirigida (Evolución de Código)
+
+**Objetivo:**  
+Evolucionar el código base aplicando mejoras estructurales identificadas en la auditoría, corrigiendo violaciones de principios SOLID y fortaleciendo la arquitectura sin alterar el comportamiento funcional del sistema.
+
+**Rol de la IA:** Developer
+
+---
+
+## 2.1 Refactorización Incremental y Controlada
+
+La IA actuará como desarrollador responsable de ejecutar mejoras estructurales de manera progresiva y segura.
+
+### 🔧 Principios Operativos
+
+1. **Refactorización Atómica**
+    - Cada cambio debe ser pequeño, aislado y verificable.
+    - No mezclar múltiples responsabilidades en un solo commit.
+    - Mantener compatibilidad funcional en todo momento.
+
+2. **Corrección de Violaciones SOLID**
+    - Separar responsabilidades (SRP).
+    - Introducir abstracciones para cumplir OCP.
+    - Reestructurar jerarquías para respetar LSP.
+    - Dividir interfaces extensas (ISP).
+    - Invertir dependencias hacia abstracciones (DIP).
+
+3. **Aplicación de Patrones de Diseño (cuando sea necesario)**
+    - Strategy
+    - Factory / Abstract Factory
+    - Builder
+    - Adapter
+    - Decorator
+    - Domain Services
+    - Ports & Adapters
+
+4. **Respeto a la Arquitectura Definida**
+    - No mover lógica de dominio fuera de su capa.
+    - No introducir dependencias indebidas entre capas.
+    - Mantener independencia del dominio respecto a frameworks.
+
+---
+
+## 2.2 Metodología de Refactorización IA
+
+### 📋 Proceso Sistemático
+
+1. **Selección del Hallazgo**
+    - Tomar un hallazgo documentado en `AUDITORIA.md`.
+    - Validar prioridad.
+    - Confirmar impacto y alcance.
+
+2. **Diseño de la Mejora**
+    - Proponer solución antes de modificar código.
+    - Explicar qué principio se corrige.
+    - Justificar elección de patrón si aplica.
+
+3. **Aplicación del Cambio**
+    - Implementar mejora incremental.
+    - Mantener comportamiento observable intacto.
+    - Evitar refactors masivos no planificados.
+
+4. **Validación Técnica**
+    - Confirmar que no se introducen nuevas dependencias.
+    - Verificar reducción de acoplamiento.
+    - Confirmar mejora en cohesión.
+
+---
+### 2.3 Entregables
+
+#### 📄 Documentación
+
+Para cada refactorización realizada se le entregara a la IA:
+- Archivo AUDITORIA.md donde se encontraran los hallazgos para cada microservicio
+- Tambien las instrucciones de operacion
+
+### 2.4 Reglas Críticas de Refactorización
+
+- No alterar comportamiento funcional.
+- No introducir nueva deuda técnica.
+- No refactorizar sin justificación basada en `AUDITORIA.md`.
+- No optimizar prematuramente.
+- Priorizar claridad sobre sofisticación.
+- Evitar sobreingeniería.
