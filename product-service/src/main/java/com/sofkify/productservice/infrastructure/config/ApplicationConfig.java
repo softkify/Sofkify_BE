@@ -1,4 +1,4 @@
-package com.sofkify.userservice.infrastructure.config;
+package com.sofkify.productservice.infrastructure.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
