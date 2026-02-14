@@ -3,6 +3,7 @@ package com.sofkify.productservice.application.service;
 import com.sofkify.productservice.application.port.in.GetProductUseCase;
 import com.sofkify.productservice.application.port.out.ProductPersistencePort;
 import com.sofkify.productservice.domain.model.Product;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -10,13 +11,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class GetProductService implements GetProductUseCase {
 
     private final ProductPersistencePort productPersistencePort;
-
-    public GetProductService(ProductPersistencePort productPersistencePort) {
-        this.productPersistencePort = productPersistencePort;
-    }
 
     @Override
     public Optional<Product> getProductById(UUID id) {

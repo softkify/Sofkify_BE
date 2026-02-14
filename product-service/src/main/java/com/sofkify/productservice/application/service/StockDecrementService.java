@@ -5,6 +5,7 @@ import com.sofkify.productservice.application.port.out.ProductPersistencePort;
 import com.sofkify.productservice.domain.ports.in.HandleOrderCreatedUseCase;
 import com.sofkify.productservice.domain.exception.InsufficientStockException;
 import com.sofkify.productservice.domain.exception.ProductNotFoundException;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -14,15 +15,11 @@ import java.util.UUID;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class StockDecrementService implements HandleOrderCreatedUseCase {
 
     private static final Logger logger = LoggerFactory.getLogger(StockDecrementService.class);
-
     private final ProductPersistencePort productPersistencePort;
-
-    public StockDecrementService(ProductPersistencePort productPersistencePort) {
-        this.productPersistencePort = productPersistencePort;
-    }
 
     @Override
     public void handleOrderCreated(OrderCreatedEventDTO event) {

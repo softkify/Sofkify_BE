@@ -7,6 +7,7 @@ import com.sofkify.productservice.infrastructure.web.dto.request.CreateProductRe
 import com.sofkify.productservice.infrastructure.web.dto.response.ProductResponse;
 import com.sofkify.productservice.infrastructure.web.mapper.ProductDtoMapper;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/products")
 public class ProductController {
 
@@ -22,13 +24,6 @@ public class ProductController {
     private final GetProductUseCase getProductUseCase;
     private final ProductDtoMapper dtoMapper;
 
-    public ProductController(CreateProductUseCase createProductUseCase, GetProductUseCase getProductUseCase, ProductDtoMapper dtoMapper) {
-        this.createProductUseCase = createProductUseCase;
-        this.getProductUseCase = getProductUseCase;
-        this.dtoMapper = dtoMapper;
-    }
-
-    // POST /products - Create new product
     @PostMapping
     public ResponseEntity<ProductResponse> createProduct(@Valid @RequestBody CreateProductRequest request) {
         Product product = dtoMapper.toDomain(request);
@@ -62,7 +57,6 @@ public class ProductController {
         return ResponseEntity.ok(response);
     }
 
-    // GET /products/{id} - Get product by ID
     @GetMapping("/{id}")
     public ResponseEntity<ProductResponse> getProductById(@PathVariable UUID id) {
         return getProductUseCase.getProductById(id)

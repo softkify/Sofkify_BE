@@ -6,6 +6,7 @@ import com.sofkify.productservice.domain.model.Product;
 import com.sofkify.productservice.infrastructure.persistence.entity.ProductEntity;
 import com.sofkify.productservice.infrastructure.persistence.mapper.ProductMapper;
 import com.sofkify.productservice.infrastructure.persistence.repository.JpaProductRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -13,13 +14,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Component
+@RequiredArgsConstructor
 public class ProductPersistenceAdapter implements ProductPersistencePort {
 
     private final JpaProductRepository jpaProductRepository;
-
-    public ProductPersistenceAdapter(JpaProductRepository jpaProductRepository) {
-        this.jpaProductRepository = jpaProductRepository;
-    }
 
     @Override
     public Product save(Product product) {

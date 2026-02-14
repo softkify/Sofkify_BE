@@ -4,24 +4,20 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sofkify.productservice.application.dto.OrderCreatedEventDTO;
 import com.sofkify.productservice.domain.ports.in.HandleOrderCreatedUseCase;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class RabbitMQOrderCreatedConsumer {
 
     private static final Logger logger = LoggerFactory.getLogger(RabbitMQOrderCreatedConsumer.class);
 
     private final ObjectMapper objectMapper;
     private final HandleOrderCreatedUseCase handleOrderCreatedUseCase;
-
-    public RabbitMQOrderCreatedConsumer(ObjectMapper objectMapper, 
-                                          HandleOrderCreatedUseCase handleOrderCreatedUseCase) {
-        this.objectMapper = objectMapper;
-        this.handleOrderCreatedUseCase = handleOrderCreatedUseCase;
-    }
 
     @RabbitListener(queues = "${rabbitmq.queues.stock-decrement}")
     public void handleOrderCreated(String message) {
