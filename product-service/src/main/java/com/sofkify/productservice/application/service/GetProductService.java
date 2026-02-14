@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class GetProductService implements GetProductUseCase {
@@ -18,7 +19,7 @@ public class GetProductService implements GetProductUseCase {
     }
 
     @Override
-    public Optional<Product> getProductById(String id) {
+    public Optional<Product> getProductById(UUID id) {
         return productPersistencePort.findById(id);
     }
 

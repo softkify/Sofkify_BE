@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/products")
@@ -42,8 +43,8 @@ public class ProductController {
     // GET /products - List all products (optional: ?status=ACTIVE|INACTIVE|DELETED)
     @GetMapping
     public ResponseEntity<List<ProductResponse>> getAllProducts(
-            @RequestParam(required = false) String status) {
-        
+        @RequestParam(required = false) String status) {
+
         List<Product> products;
         if (status != null && !status.trim().isEmpty()) {
             products = getProductUseCase.getProductsByStatus(status.toUpperCase());
@@ -52,18 +53,18 @@ public class ProductController {
         }
 
         List<ProductResponse> response = products.stream()
-                .map(ProductMapper::toResponse)
-                .toList();
-        
+            .map(ProductMapper::toResponse)
+            .toList();
+
         return ResponseEntity.ok(response);
     }
 
     // GET /products/{id} - Get product by ID
     @GetMapping("/{id}")
-    public ResponseEntity<ProductResponse> getProductById(@PathVariable String id) {
+    public ResponseEntity<ProductResponse> getProductById(@PathVariable UUID id) {
         return getProductUseCase.getProductById(id)
-                .map(product -> ResponseEntity.ok(ProductMapper.toResponse(product)))
-                .orElse(ResponseEntity.notFound().build());
+            .map(product -> ResponseEntity.ok(ProductMapper.toResponse(product)))
+            .orElse(ResponseEntity.notFound().build());
     }
 
     // TODO: PUT /products/{id} - Update product details

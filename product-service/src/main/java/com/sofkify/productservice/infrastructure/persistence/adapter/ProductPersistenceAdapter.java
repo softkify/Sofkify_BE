@@ -29,25 +29,24 @@ public class ProductPersistenceAdapter implements ProductPersistencePort {
     }
 
     @Override
-    public Optional<Product> findById(String id) {
-        return jpaProductRepository.findById(UUID.fromString(id))
-                .map(ProductMapper::toDomain);
+    public Optional<Product> findById(UUID id) {
+        return jpaProductRepository.findById(id).map(ProductMapper::toDomain);
     }
 
     @Override
     public List<Product> findAll() {
         return jpaProductRepository.findAll()
-                .stream()
-                .map(ProductMapper::toDomain)
-                .toList();
+            .stream()
+            .map(ProductMapper::toDomain)
+            .toList();
     }
 
     @Override
     public List<Product> findByStatus(String status) {
         ProductStatus productStatus = ProductStatus.valueOf(status.toUpperCase());
         return jpaProductRepository.findByStatus(productStatus)
-                .stream()
-                .map(ProductMapper::toDomain)
-                .toList();
+            .stream()
+            .map(ProductMapper::toDomain)
+            .toList();
     }
 }
