@@ -2,6 +2,7 @@ package com.sofkify.productservice.infrastructure.web.controller;
 
 import com.sofkify.productservice.application.port.in.CreateProductUseCase;
 import com.sofkify.productservice.application.port.in.GetProductUseCase;
+import com.sofkify.productservice.application.port.in.command.CreateProductCommand;
 import com.sofkify.productservice.domain.model.Product;
 import com.sofkify.productservice.infrastructure.web.dto.request.CreateProductRequest;
 import com.sofkify.productservice.infrastructure.web.dto.response.ProductResponse;
@@ -19,39 +20,28 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @RequestMapping("/api/products")
 public class ProductController {
-
     private final CreateProductUseCase createProductUseCase;
     private final GetProductUseCase getProductUseCase;
     private final ProductDtoMapper dtoMapper;
 
     @PostMapping
     public ResponseEntity<ProductResponse> createProduct(@Valid @RequestBody CreateProductRequest request) {
-        Product product = dtoMapper.toDomain(request);
-        Product createdProduct = createProductUseCase.createProduct(product);
-        return ResponseEntity.status(HttpStatus.CREATED).body(dtoMapper.toResponse(createdProduct));
-    }
-
-    @GetMapping
-    public ResponseEntity<List<ProductResponse>> getAllProducts(@RequestParam(required = false) String status) {
-
-        List<Product> products;
-        if (status != null && !status.trim().isEmpty()) {
-            products = getProductUseCase.getProductsByStatus(status.toUpperCase());
-        } else {
-            products = getProductUseCase.getAllProducts();
-        }
-
-        List<ProductResponse> response = products.stream()
-            .map(dtoMapper::toResponse)
-            .toList();
-
-        return ResponseEntity.ok(response);
+        CreateProductCommand command = dtoMapper.toCommand(request);
+        Product createdProduct = createProductUseCase.createProduct(command);
+        return ResponseEntity.status(HttpStatus.CREATED).body(dtoMapper.toDto(createdProduct));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ProductResponse> getProductById(@PathVariable UUID id) {
-        return getProductUseCase.getProductById(id)
-            .map(product -> ResponseEntity.ok(dtoMapper.toResponse(product)))
-            .orElse(ResponseEntity.notFound().build());
+        return ResponseEntity.ok(dtoMapper.toDto(getProductUseCase.getProductById(id)));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<ProductResponse>> getAllProducts(@RequestParam(required = false) String status) {
+        if (status == null) {
+            return ResponseEntity.ok(getProductUseCase.getAllProducts().stream().map(dtoMapper::toDto).toList());
+        }
+        return ResponseEntity.ok(getProductUseCase.getProductsByStatus(status.toUpperCase())
+            .stream().map(dtoMapper::toDto).toList());
     }
 }

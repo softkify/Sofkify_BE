@@ -24,7 +24,6 @@ public class Product {
     public static Product create(String name, String description, BigDecimal price, int stock) {
         validatePrice(price);
         validateStock(stock);
-        
         return new Product(
             UUID.randomUUID(),
             name,
@@ -35,8 +34,8 @@ public class Product {
         );
     }
 
-    public static Product restore(UUID id, String name, String description, BigDecimal price, 
-                                 int stock, ProductStatus status) {
+    public static Product reconstitute(UUID id, String name, String description, BigDecimal price,
+                                       int stock, ProductStatus status) {
         return new Product(id, name, description, price, stock, status);
     }
 
@@ -56,17 +55,11 @@ public class Product {
         if (quantity <= 0) {
             throw new InvalidProductStockException("Quantity to decrement must be greater than zero");
         }
-        
         if (this.stock < quantity) {
             throw new InvalidProductStockException(
                 String.format("Insufficient stock. Available: %d, Required: %d", this.stock, quantity)
             );
         }
-        
         this.stock -= quantity;
-    }
-
-    public boolean isActive() {
-        return ProductStatus.ACTIVE.equals(status);
     }
 }

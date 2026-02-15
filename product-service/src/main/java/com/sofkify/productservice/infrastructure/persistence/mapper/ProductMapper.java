@@ -6,7 +6,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class ProductMapper {
-
     public ProductEntity toEntity(Product product) {
         return new ProductEntity(
             product.getId(),
@@ -19,7 +18,7 @@ public class ProductMapper {
     }
 
     public Product toDomain(ProductEntity entity) {
-        return Product.restore(
+        return Product.reconstitute(
             entity.getId(),
             entity.getName(),
             entity.getDescription(),

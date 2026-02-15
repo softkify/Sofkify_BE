@@ -1,5 +1,6 @@
 package com.sofkify.productservice.infrastructure.web.mapper;
 
+import com.sofkify.productservice.application.port.in.command.CreateProductCommand;
 import com.sofkify.productservice.domain.model.Product;
 import com.sofkify.productservice.infrastructure.web.dto.request.CreateProductRequest;
 import com.sofkify.productservice.infrastructure.web.dto.response.ProductResponse;
@@ -7,8 +8,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class ProductDtoMapper {
-
-    public ProductResponse toResponse(Product product) {
+    public ProductResponse toDto(Product product) {
         return new ProductResponse(
             product.getId(),
             product.getName(),
@@ -19,12 +19,12 @@ public class ProductDtoMapper {
         );
     }
 
-    public Product toDomain(CreateProductRequest request) {
-        return Product.create(
-            request.getName(),
-            request.getDescription(),
-            request.getPrice(),
-            request.getStock()
+    public CreateProductCommand toCommand(CreateProductRequest request) {
+        return new CreateProductCommand(
+            request.name(),
+            request.description(),
+            request.price(),
+            request.stock()
         );
     }
 }
