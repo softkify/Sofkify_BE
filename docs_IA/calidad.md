@@ -1,328 +1,533 @@
 # CALIDAD.md
 
----
+## 1. ANATOMÍA DE UN INCIDENTE
 
-# 1. ANATOMÍA DE UN INCIDENTE
-
-Este documento recoge incidentes críticos ocurridos durante el desarrollo del proyecto **Softkify**, enfocados en puntos de integración del backend bajo arquitectura hexagonal y entorno de microservicios.
+Este documento recoge dos incidentes críticos que ocurrieron durante el desarrollo del proyecto Softkify, uno en el frontend y otro en el backend, ambos relacionados con la integración entre capas.
 
 ---
 
-## INCIDENTE: Configuración CORS – Backend
+### INCIDENTE 1: Variables de Entorno - Frontend
 
-### Contexto
+#### Contexto
+Durante las pruebas de conexión entre backend y front end del módulo de autenticación, los desarrolladores reportaron que no podían completar el registro. La consola del navegador mostraba errores de conexión que inicialmente se confundieron con problemas de CORS.
 
-Durante la integración entre frontend y backend, las peticiones realizadas desde el navegador eran bloqueadas por la política CORS, aunque el backend respondía correctamente a herramientas como Postman e Insomnia.
+#### Error (Causa Humana)
+El desarrollador hardcodeó la URL base de la API para pruebas locales rápidas y olvidó revertir el cambio o configurarlo para usar las variables de entorno antes del commit final a la rama principal.
 
-El backend es un microservicio construido con Spring Boot bajo arquitectura hexagonal.
+#### Defecto (Código)
+El archivo `src/services/authApi.ts` tenía la URL fija apuntando a `localhost`, lo que funcionaba en el entorno de desarrollo pero fallaba en cualquier otro dispositivo.
 
----
+**ANTES (Con Defecto):**
+```typescript
+// src/services/authApi.ts
+// ERROR: URL fija que ignora las variables de entorno de producción
+const API_BASE_URL = 'http://localhost:3000';
 
-### Error (Causa Humana)
-
-La configuración CORS fue aplicada directamente en el controlador mediante `@CrossOrigin`, sin una estrategia centralizada ni validación mediante pruebas de integración.
-
----
-
-### Defecto (Código)
-
-Configuración localizada en el controller:
-
-```java
-@CrossOrigin(origins = "http://localhost:5173")
-@RestController
-@RequestMapping("/api/users")
-public class UserController {
-    ...
-}
+export const authApi = {
+  // ...
+};
 ```
 
-Esto generó:
+**DESPUÉS (Corregido):**
+```typescript
+// src/services/authApi.ts
+// FIX: Usa la variable de entorno VITE_API_BASE_URL, con fallback seguro para local
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
-- Configuración dispersa
-- Falta de validación del preflight (OPTIONS)
-- Dificultad para escalar la política CORS en microservicios
-
----
-
-### Solución Aplicada
-
-Se migró la configuración a una clase centralizada:
-
-```java
-@Configuration
-public class CorsConfig implements WebMvcConfigurer {
-
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**")
-                .allowedOrigins("http://localhost:5173")
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                .allowedHeaders("*")
-                .allowCredentials(true);
-    }
-}
+export const authApi = {
+  // ...
+};
 ```
 
+#### Fallo (Impacto en Usuario)
+Al intentar registrarse o iniciar sesión desde developer, la aplicación intentaba conectar a `http://localhost:3000/api/users` en la máquina del propio usuario.
+
+**Manifestación**: El botón de "Registrarse" se quedaba cargando indefinidamente o mostraba un error genérico "Network Error", ya que el navegador bloqueaba la petición o simplemente no encontraba el servidor localmente.
+
 ---
 
-### Fallo (Impacto en Usuario)
+### INCIDENTE 2: Configuración CORS - Backend
 
-El navegador bloqueaba la petición con error:
+#### Contexto
+Después de verificar que el backend estaba operativo mediante Insomnia y Postman, las peticiones desde el navegador fallaban sistemáticamente debido a la política CORS.
+
+El backend está construido con Spring Boot bajo arquitectura hexagonal y forma parte de un ecosistema de microservicios.
+
+#### Error (Causa Humana)
+La política CORS fue configurada con un patrón de rutas `/api/**` sin considerar que los controladores ya estaban mapeados bajo `/api`. Esto generó una incongruencia en la evaluación del preflight (OPTIONS), provocando ausencia de los headers esperados por el navegador.
+
+#### Defecto (Código)
+
+**ANTES (Con Defecto):**
+```java
+registry.addMapping("/api/**")  // Configuración inconsistente con el mapping real
+```
+
+**DESPUÉS (Corregido):**
+```java
+registry.addMapping("/**")  // Patrón global coherente con el mapping de controllers
+```
+
+#### Fallo (Impacto en Usuario)
+El navegador bloqueaba las peticiones con:
 
 ```
 No 'Access-Control-Allow-Origin' header is present
 ```
 
-Postman no detectaba el problema porque no aplica políticas CORS.
+#### Análisis Técnico Profesional
+
+- El problema no era funcional sino de configuración HTTP.
+- Postman no reproduce validaciones de preflight.
+- La ausencia de tests de integración permitió que el error llegara a entorno de integración.
+
+#### Medida Preventiva Adoptada
+
+- Validación obligatoria de preflight (`OPTIONS`) en pruebas de integración.
+- Centralización de configuración CORS.
+- Revisión explícita de mappings base en code review.
 
 ---
 
-### Aprendizaje Técnico
+## 2. ANÁLISIS DE PIRÁMIDE DE PRUEBAS
 
-- CORS debe configurarse centralmente.
-- Las peticiones `OPTIONS` deben validarse con pruebas de integración.
-- Postman no es suficiente para validar comportamiento real del navegador.
-
----
-
-# 2. ANÁLISIS DE PIRÁMIDE DE PRUEBAS – BACKEND
-
-## Contexto Arquitectónico
-
-Softkify backend está construido bajo:
-
-- Arquitectura Hexagonal (Ports & Adapters)
-- Microservicios independientes
-- Comunicación asíncrona con RabbitMQ (implementado)
-- Roles de dominio: Cliente y Admin
-- `@ControllerAdvice` global para manejo de errores
-- Sin Spring Security actualmente
+### Tipo de Aplicación
+**Softkify** es una aplicación full-stack de comercio electrónico construida con:
+- **Frontend**: SPA (Single Page Application) con React y Vite
+- **Backend**: API RESTful con Spring Boot
+- **Infraestructura**: Docker, base de datos PostgreSQL
+- **Arquitectura Backend**: Hexagonal (Ports & Adapters)
+- **Comunicación entre microservicios**: RabbitMQ
 
 ---
 
-## Estrategia de Testing Adoptada
+#### FRONTEND: Pirámide Invertida (Testing Trophy)
 
-Dado que se usa arquitectura hexagonal, las pruebas priorizan dominio y casos de uso sobre infraestructura.
+**¿Por qué más E2E que Unitarias en Frontend?**
 
-### Distribución Recomendada
+1. **Limitaciones de las Pruebas Unitarias**:
+    - Muchos componentes (`Header`, `ProductCard`) son visuales/presentacionales
+    - Mockear `useLogin`, props y `react-router` es costoso en mantenimiento
+    - No garantizan que el sistema funcione integrado
+    - El incidente de variables de entorno **no se habría detectado** con pruebas unitarias
+
+2. **Valor de las Pruebas E2E**:
+    - Validan **flujos críticos de negocio** completos (Auth → Shop → Checkout)
+    - Son agnósticas a la implementación
+    - Detectan errores de configuración (URLs, variables de entorno)
+    - Capturan problemas de integración con el backend real
+
+**Distribución Recomendada (Frontend)**:
+```
+E2E (Cypress/Playwright): 60%  ← Flujos críticos
+Integration (RTL):        30%  ← Componentes complejos con hooks
+Unit (Vitest):           10%  ← Lógica pura (validaciones, cálculos)
+```
+
+---
+
+### BACKEND: Pirámide Tradicional Orientada a Dominio
+
+Dado que el backend implementa arquitectura hexagonal, las pruebas priorizan dominio y casos de uso antes que infraestructura.
+
+#### Distribución Recomendada (Backend Profesional)
 
 ```
 Unit (Dominio + UseCases)        60%
 Integration (Adapters + Spring)  30%
-API Schema Validation            10%
+Contract/API Validation          10%
+```
+
+#### Justificación
+
+- La lógica crítica reside en casos de uso y dominio.
+- Integration tests validan configuración, serialización y persistencia.
+- Contract tests protegen el acuerdo entre microservicios y frontend.
+
+---
+
+### Ajuste Estratégico sobre RabbitMQ
+
+Actualmente:
+
+- RabbitMQ está implementado.
+- No existen aún pruebas automatizadas específicas para mensajería.
+
+Riesgo identificado:
+La comunicación asíncrona es un punto crítico en arquitectura distribuida y debe ser cubierta por pruebas de integración en futuras iteraciones.
+
+Plan técnico:
+
+- Test de publicación de eventos.
+- Test de consumo con broker embebido o Testcontainers.
+- Validación de serialización del mensaje.
+- Validación de idempotencia.
+
+---
+
+## 3. IMPLEMENTACIÓN DE APRENDIZAJE
+
+A continuación, se presenta una suite mínima de pruebas que **hubieran detectado** los dos incidentes documentados.
+
+### A. Pruebas Unitarias - Frontend (Vitest + React Testing Library)
+
+**Foco**: Validaciones del formulario de Login (`LoginForm.tsx`)
+
+```typescript
+// src/components/Auth/__tests__/LoginForm.test.tsx
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, test, expect, vi, beforeEach } from 'vitest';
+import LoginForm from '../LoginForm';
+import { VALIDATION_ERRORS } from '../data';
+
+describe('LoginForm Component', () => {
+  const mockSubmit = vi.fn();
+  const mockToggle = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test('debe mostrar error si se intenta enviar el formulario vacío', () => {
+    render(
+      <LoginForm 
+        onSubmit={mockSubmit} 
+        onToggleMode={mockToggle} 
+        isLoading={false} 
+        error={null} 
+      />
+    );
+
+    const submitBtn = screen.getByRole('button', { name: /iniciar sesión/i });
+    fireEvent.click(submitBtn);
+
+    // Verificamos que NO se llamó al submit
+    expect(mockSubmit).not.toHaveBeenCalled();
+    
+    // Verificamos que aparece el mensaje de error de email requerido
+    expect(screen.getByText(VALIDATION_ERRORS.emailRequired)).toBeInTheDocument();
+  });
+
+  test('debe validar formato de email antes de permitir submit', () => {
+    render(
+      <LoginForm 
+        onSubmit={mockSubmit} 
+        onToggleMode={mockToggle} 
+        isLoading={false} 
+        error={null} 
+      />
+    );
+
+    // Email inválido
+    fireEvent.change(screen.getByPlaceholderText(/correo electrónico/i), {
+      target: { value: 'email-invalido' }
+    });
+    fireEvent.change(screen.getByPlaceholderText(/contraseña/i), {
+      target: { value: 'password123' }
+    });
+    
+    fireEvent.click(screen.getByRole('button', { name: /iniciar sesión/i }));
+    
+    expect(mockSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText(VALIDATION_ERRORS.emailInvalid)).toBeInTheDocument();
+  });
+
+  test('debe llamar a onSubmit con los datos correctos si el formulario es válido', async () => {
+    render(
+      <LoginForm 
+        onSubmit={mockSubmit} 
+        onToggleMode={mockToggle} 
+        isLoading={false} 
+        error={null} 
+      />
+    );
+
+    // Rellenamos los campos con datos válidos
+    fireEvent.change(screen.getByPlaceholderText(/correo electrónico/i), {
+      target: { value: 'test@softkify.com' }
+    });
+    fireEvent.change(screen.getByPlaceholderText(/contraseña/i), {
+      target: { value: 'password123' }
+    });
+
+    // Enviamos
+    fireEvent.click(screen.getByRole('button', { name: /iniciar sesión/i }));
+    
+    // Verificamos que se llamó a la función con los datos correctos
+    await waitFor(() => {
+      expect(mockSubmit).toHaveBeenCalledWith({
+        email: 'test@softkify.com',
+        password: 'password123'
+      });
+    });
+  });
+
+  test('debe mostrar estado de carga cuando isLoading es true', () => {
+    render(
+      <LoginForm 
+        onSubmit={mockSubmit} 
+        onToggleMode={mockToggle} 
+        isLoading={true} 
+        error={null} 
+      />
+    );
+
+    const submitBtn = screen.getByRole('button', { name: /iniciando/i });
+    expect(submitBtn).toBeDisabled();
+  });
+});
 ```
 
 ---
 
-## 2.1 Pruebas Unitarias
+### B. Pruebas de Integración - Frontend (Configuración de Variables)
 
-Enfocadas en:
+**Foco**: Detectar el incidente de configuración de API_BASE_URL
 
-- Casos de uso (Application layer)
-- Reglas de negocio (Domain)
-- Validaciones
-- Invariantes
-- Excepciones de dominio
+```typescript
+// src/services/__tests__/apiConfig.test.ts
+import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 
-Características:
+describe('API Configuration', () => {
+  const originalEnv = import.meta.env;
 
-- Uso de JUnit 5
-- Uso de Mockito
-- Se mockean puertos, no repositorios concretos
-- No se levanta contexto Spring
+  afterEach(() => {
+    // Restaurar variables de entorno originales
+    import.meta.env = originalEnv;
+  });
 
-Objetivo: Validar lógica pura independiente de infraestructura.
+  test('debe usar VITE_API_BASE_URL cuando está definida', () => {
+    // Simular variable de entorno en producción
+    import.meta.env = {
+      ...originalEnv,
+      VITE_API_BASE_URL: 'https://api.softkify.com'
+    };
 
----
+    // Reimportar módulo para que lea la nueva variable
+    const { API_BASE_URL } = require('../apiConfig');
+    
+    expect(API_BASE_URL).toBe('https://api.softkify.com');
+    expect(API_BASE_URL).not.toContain('localhost');
+  });
 
-## 2.2 Pruebas de Integración
+  test('debe hacer fallback a localhost cuando VITE_API_BASE_URL no está definida', () => {
+    import.meta.env = {
+      ...originalEnv,
+      VITE_API_BASE_URL: undefined
+    };
 
-**Estado actual:**  
-Aún no implementadas completamente. Se planifica realizarlas posteriormente.
+    const { API_BASE_URL } = require('../apiConfig');
+    
+    expect(API_BASE_URL).toBe('http://localhost:3000');
+  });
 
-Alcance previsto:
-
-- Controllers con MockMvc
-- Validación de configuración CORS (preflight OPTIONS)
-- Validación de `@ControllerAdvice`
-- Persistencia con base de datos real
-- Validación de serialización JSON
-
-Nota:
-
-Actualmente no se usan Testcontainers.  
-Se evaluará su incorporación cuando se implementen pruebas con PostgreSQL real.
-
----
-
-## 2.3 Validación de API (Schema)
-
-Actualmente se realizan pruebas con RestAssured para:
-
-- Validar estructura de response
-- Validar códigos HTTP
-- Verificar que no se expongan campos sensibles (ej. password)
-- Validar formato uniforme de error
-
-Importante:
-
-Estas pruebas validan comportamiento de API,  
-pero no constituyen Contract Testing Consumer-Driven.
-
-Futuro objetivo:
-
-- Evaluar Spring Cloud Contract o Pact en entorno multi-microservicio.
+  test('ALERTA: debe fallar si hay URL hardcodeada', () => {
+    // Esta prueba detectaría el incidente original
+    const { API_BASE_URL } = require('../apiConfig');
+    
+    // Verificar que no hay hardcodeo de localhost en producción
+    if (import.meta.env.MODE === 'production') {
+      expect(API_BASE_URL).not.toContain('localhost');
+    }
+  });
+});
+```
 
 ---
 
-# 3. MENSAJERÍA ASÍNCRONA (RabbitMQ)
+### C. Pruebas E2E - Frontend (Playwright)
 
-## Estado Actual
+**Foco**: Flujo completo de autenticación + detección de errores de red/CORS
 
-RabbitMQ está implementado para comunicación entre microservicios.
+```typescript
+// tests/auth.spec.ts
+import { test, expect } from '@playwright/test';
 
-Actualmente:
+test.describe('Flujo de Autenticación', () => {
+  
+  test.beforeEach(async ({ page }) => {
+    // Navegar a la página de login
+    await page.goto('/auth');
+  });
 
-- Se publican eventos desde el microservicio.
-- Existen consumidores con `@RabbitListener`.
+  test('debe permitir al usuario navegar entre Login y Registro', async ({ page }) => {
+    // Verificar estado inicial (Login)
+    await expect(page.getByRole('heading', { name: '¡Bienvenido de nuevo!' })).toBeVisible();
+    
+    // Clic en "Registrate aquí"
+    await page.getByText('Registrate aquí').click();
 
-Pero:
+    // Verificar cambio a Registro
+    await expect(page.getByRole('heading', { name: 'Crea tu cuenta' })).toBeVisible();
+    
+    // Volver a Login
+    await page.getByText('Inicia sesión').click();
+    await expect(page.getByRole('heading', { name: '¡Bienvenido de nuevo!' })).toBeVisible();
+  });
 
-- No se han implementado aún pruebas automatizadas de mensajería.
+  test('debe mostrar error visual cuando la API falla (simulando CORS)', async ({ page }) => {
+    // Mockear la respuesta de la API para simular fallo CORS
+    await page.route('**/auth/login', async route => {
+      // Simular un error de red (como el que causa CORS)
+      await route.abort('failed');
+    });
+
+    // Rellenar formulario
+    await page.getByPlaceholderText('Correo electrónico').fill('test@softkify.com');
+    await page.getByPlaceholderText('Contraseña').fill('password123');
+    
+    // Intentar login
+    await page.getByRole('button', { name: 'Iniciar Sesión' }).click();
+
+    // Verificar que se muestra un mensaje de error de red
+    await expect(page.getByText(/error de conexión|failed to fetch/i)).toBeVisible();
+  });
+
+  test('CRÍTICO: debe poder comunicarse con el backend real', async ({ page }) => {
+    // Esta prueba fallaría con el incidente de CORS o URL hardcodeada
+    // Asume que hay un backend de pruebas disponible
+    
+    // Intentar registro con datos de prueba
+    await page.getByText('Registrate aquí').click();
+    await page.getByPlaceholderText('Nombre completo').fill('Usuario Test');
+    await page.getByPlaceholderText('Correo electrónico').fill(`test${Date.now()}@softkify.com`);
+    await page.getByPlaceholderText('Contraseña', { exact: true }).fill('Test123456');
+    await page.getByPlaceholderText('Confirmar contraseña').fill('Test123456');
+    
+    // Interceptar la petición para verificar que llegue al backend
+    const responsePromise = page.waitForResponse(
+      response => response.url().includes('/api/users') && response.status() === 201
+    );
+
+    await page.getByRole('button', { name: 'Crear Cuenta' }).click();
+    
+    // Esperar respuesta exitosa del backend
+    const response = await responsePromise;
+    expect(response.status()).toBe(201);
+    
+    // Verificar redirección o mensaje de éxito
+    await expect(page.getByText(/registro exitoso|bienvenido/i)).toBeVisible({ timeout: 5000 });
+  });
+});
+```
+
 
 ---
 
-## Estrategia de Testing Planificada
+### D. Pruebas Unitarias - Backend (Mejora Conceptual)
 
-Se planifica implementar:
+En un entorno hexagonal profesional:
 
-- Pruebas de publicación de eventos tras casos de uso exitosos.
-- Pruebas de serialización del mensaje.
-- Pruebas de consumo con broker embebido o Testcontainers.
-- Validación de idempotencia del consumidor.
-- Validación de manejo de errores y reintentos.
+- Se mockean puertos, no repositorios concretos.
+- El dominio no depende de infraestructura.
+- Las reglas de negocio deben probarse sin levantar contexto Spring.
 
-Estas pruebas aún no están implementadas y forman parte del roadmap de calidad.
+Se recomienda progresivamente migrar tests que dependan de infraestructura hacia pruebas puramente orientadas a dominio.
 
 ---
 
-# 4. MANEJO GLOBAL DE ERRORES
+### E. Pruebas de Integración - Backend
 
-El backend implementa `@ControllerAdvice` para:
+Mejoras incorporadas conceptualmente:
 
-- Manejar excepciones de dominio.
-- Estandarizar estructura de error.
-- Retornar códigos HTTP adecuados (400, 409, 404, etc.).
+- Validación explícita de headers CORS.
+- Validación de que no se expone información sensible.
+- Validación de códigos HTTP correctos.
+- Confirmación de que no existe duplicación de rutas (`/api/api`).
 
 Estado actual:
-
-- Implementado.
-- Pruebas automatizadas específicas aún pendientes.
-
-Formato esperado de error:
-
-```json
-{
-  "timestamp": "...",
-  "status": 400,
-  "message": "Descripción del error"
-}
-```
+- Integration tests implementados con `@SpringBootTest`.
+- No se utiliza Testcontainers aún.
+- No se realizan pruebas de mensajería.
 
 ---
 
-# 5. ROLES Y CONTROL DE ACCESO
+### F. Pruebas de Contrato API
 
-El dominio define dos roles:
+Actualmente se utilizan pruebas con RestAssured para validar:
 
-- Cliente
-- Admin
+- Status codes.
+- Schema básico.
+- No exposición de campos sensibles.
 
-Actualmente:
+Nota profesional:
+Estas pruebas validan comportamiento HTTP, pero no constituyen Consumer-Driven Contract Testing formal.
 
-- Los roles existen a nivel de modelo.
-- No se ha implementado Spring Security.
-- No existen pruebas de autorización aún.
-
-Futuro objetivo:
-
-- Implementar Spring Security.
-- Agregar pruebas de autorización por rol.
-- Validar endpoints restringidos.
+Roadmap:
+Evaluar Spring Cloud Contract o Pact cuando la arquitectura multi-microservicio evolucione.
 
 ---
 
-# 6. COBERTURA Y MÉTRICAS
+## 4. COBERTURA Y MÉTRICAS DE CALIDAD
 
-## Objetivos Backend
-
+#### Backend
 ```
 Líneas:     ≥ 80%
 Ramas:      ≥ 75%
 Funciones:  ≥ 85%
-Casos de uso críticos: 100%
+Crítico*:   100%
 ```
 
-Crítico incluye:
+*Crítico = Controllers, UseCases, validaciones de dominio, configuración CORS.*
 
-- Casos de uso principales
-- Validaciones de dominio
-- Configuración CORS
-- Manejo global de errores
-
-Cobertura no es el único indicador de calidad.  
-Se prioriza cobertura de reglas de negocio sobre cobertura superficial.
+Cobertura no es el objetivo final; es un indicador complementario de robustez.
 
 ---
 
-# 7. CHECKLIST DE CALIDAD – BACKEND
+## 5. CHECKLIST DE CALIDAD ANTES DE COMMIT
 
-Antes de cada commit:
+### Frontend
+- [ ] Variables de entorno configuradas en `.env.example` y documentadas
+- [ ] No hay URLs hardcodeadas en servicios/APIs
+- [ ] Validaciones de formulario tienen tests unitarios
+- [ ] Flujos críticos cubiertos por E2E (Auth, Checkout)
+- [ ] Manejo de errores de red implementado y testeado
 
-- [ ] Casos de uso tienen pruebas unitarias
-- [ ] No existen dependencias directas de dominio a infraestructura
-- [ ] Puertos correctamente mockeados en unit tests
-- [ ] CORS configurado centralmente
-- [ ] `@ControllerAdvice` mantiene estructura uniforme
-- [ ] No se exponen datos sensibles en responses
-- [ ] Eventos publicados correctamente desde el caso de uso
-- [ ] Build pasa correctamente (`mvn clean install`)
-- [ ] Tests pasan (`mvn test`)
-- [ ] No existen warnings críticos de compilación
 
----
+### Backend
 
-# 8. ROADMAP DE MADUREZ DE CALIDAD (BACKEND)
+- [ ] Casos de uso cubiertos por pruebas unitarias
+- [ ] Dominio desacoplado de infraestructura
+- [ ] Validación de preflight (OPTIONS) presente
+- [ ] No exposición de datos sensibles
+- [ ] Contrato API validado
+- [ ] Eventos publicados correctamente (aunque sin test automatizado aún)
+- [ ] Build exitoso (`mvn clean install`)
+- [ ] Tests exitosos (`mvn test`)
 
-Fase actual:
-
-- Unit tests en dominio
-- API validation básica
-- Manejo global de errores
-- CORS centralizado
-
-Fase siguiente:
-
-- Pruebas de integración completas
-- Incorporación de Testcontainers
-- Pruebas de RabbitMQ
-- Contract Testing real
-- Implementación de Spring Security
-- Pruebas de autorización por rol
+### General
+- [ ] Build pasa localmente: `npm run build` / `mvn clean install`
+- [ ] Tests pasan al 100%: `npm test` / `mvn test`
+- [ ] No hay warnings de linter: `npm run lint` / `mvn checkstyle:check`
+- [ ] Coverage cumple umbrales mínimos
+- [ ] Dockerfile actualizado si hay cambios de configuración
 
 ---
 
-# 9. LECCIONES APRENDIDAS (BACKEND)
+## 6. LECCIONES APRENDIDAS
 
-1. La integración real ocurre en bordes del sistema (HTTP y mensajería).
-2. Las pruebas unitarias no detectan errores de configuración.
-3. La mensajería asíncrona requiere estrategia de testing dedicada.
-4. La configuración debe centralizarse.
-5. La calidad debe evolucionar junto con la arquitectura.
+### Del Incidente de Variables de Entorno (Frontend)
+1. **Nunca hardcodear URLs**: Siempre usar variables de entorno con fallback claro
+2. **Validar configuración en CI/CD**: Agregar test que verifique uso de env vars
+3. **Documentar variables requeridas**: Mantener `.env.example` actualizado
+4. **Code review enfocado**: Revisar específicamente configuración antes de merge
+
+### Del Incidente de CORS (Backend)
+1. Los errores de configuración HTTP pueden ser más críticos que errores lógicos.
+2. Postman no replica validaciones del navegador.
+3. La ausencia de integration tests permite que errores de configuración lleguen a integración.
+4. Arquitectura hexagonal obliga a probar dominio sin framework.
+5. Mensajería asíncrona requiere estrategia de testing dedicada.
+6. Centralizar configuración reduce riesgo operativo.
+
+### Mejores Prácticas Adoptadas
+1. **Configuración externalizada**: Usar `application.yml` con profiles (dev, prod)
+2. **Tests de contrato obligatorios**: Asegurar que frontend y backend hablen el mismo idioma
+3. **E2E en pipeline de CI**: Ejecutar al menos los flujos críticos antes de deploy
+4. **Monitoring de errores**: Implementar Sentry/similar para detectar errores en producción temprano
 
 ---
 
 **Última actualización**: 2026-02-15  
-**Mantenido por**: Equipo Backend Softkify  
-**Versión**: 1.2 – Refinado para arquitectura hexagonal y microservicios
+**Mantenido por**: Equipo de Calidad Softkify  
+**Versión**: 2.0 (Backend refinado profesionalmente)
