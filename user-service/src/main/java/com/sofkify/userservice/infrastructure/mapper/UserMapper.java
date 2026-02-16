@@ -1,8 +1,7 @@
 package com.sofkify.userservice.infrastructure.mapper;
 
+import com.sofkify.userservice.application.dto.UserResponse;
 import com.sofkify.userservice.domain.model.User;
-import com.sofkify.userservice.domain.model.UserRole;
-import com.sofkify.userservice.domain.model.UserStatus;
 import com.sofkify.userservice.infrastructure.adapters.out.persistence.entity.UserEntity;
 import org.springframework.stereotype.Component;
 
@@ -40,6 +39,22 @@ public class UserMapper {
                 user.getName(),
                 user.getRole(),
                 user.getStatus(),
+                user.getCreatedAt(),
+                user.getUpdatedAt()
+        );
+    }
+    // Domain → DTO
+    public UserResponse toDto(User user) {
+        if (user == null) {
+            return null;
+        }
+
+        return new UserResponse(
+                user.getId(),
+                user.getEmail(),
+                user.getName(),
+                user.getRole().name(),
+                user.getStatus().name(),
                 user.getCreatedAt(),
                 user.getUpdatedAt()
         );

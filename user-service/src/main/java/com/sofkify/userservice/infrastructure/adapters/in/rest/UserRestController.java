@@ -4,6 +4,7 @@ import com.sofkify.userservice.application.dto.*;
 import com.sofkify.userservice.application.exception.UserNotFoundException;
 import com.sofkify.userservice.domain.model.User;
 import com.sofkify.userservice.domain.ports.in.UserServicePort;
+import com.sofkify.userservice.infrastructure.mapper.UserMapper;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,15 +17,17 @@ import java.util.Optional;
 public class UserRestController {
 
     private final UserServicePort userService;
+    private final UserMapper userMapper;
 
-    public UserRestController(UserServicePort userService) {
+    public UserRestController(UserServicePort userService, UserMapper userMapper) {
         this.userService = userService;
+        this.userMapper = userMapper;
     }
 
     @PostMapping
     public ResponseEntity<UserResponse> createUser(@Valid @RequestBody CreateUserRequest request) {
         User createdUser = userService.createUser(request.getEmail(), request.getPassword(), request.getName());
-        UserResponse response = mapToUserResponse(createdUser);
+        UserResponse response = userMapper.toDto(createdUser);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -32,14 +35,14 @@ public class UserRestController {
     public ResponseEntity<UserResponse> getUserById(@PathVariable String id) {
         User user = userService.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado: " + id));
-        UserResponse response = mapToUserResponse(user);
+        UserResponse response = userMapper.toDto(user);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/email/{email}")
     public ResponseEntity<UserResponse> getUserByEmail(@PathVariable String email) {
         User user = userService.findByEmail(email);
-        UserResponse response = mapToUserResponse(user);
+        UserResponse response = userMapper.toDto(user);
         return ResponseEntity.ok(response);
     }
 
@@ -48,14 +51,14 @@ public class UserRestController {
             @PathVariable String id,
             @Valid @RequestBody UpdateUserRequest request) {
         User updatedUser = userService.updateProfile(id, request.getName(), request.getEmail());
-        UserResponse response = mapToUserResponse(updatedUser);
+        UserResponse response = userMapper.toDto(updatedUser);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/{id}/promote")
     public ResponseEntity<UserResponse> promoteToAdmin(@PathVariable String id) {
         User promotedUser = userService.promoteToAdmin(id);
-        UserResponse response = mapToUserResponse(promotedUser);
+        UserResponse response = userMapper.toDto(promotedUser);
         return ResponseEntity.ok(response);
     }
 
@@ -65,17 +68,7 @@ public class UserRestController {
         return ResponseEntity.noContent().build();
     }
 
-    private UserResponse mapToUserResponse(User user) {
-        return new UserResponse(
-                user.getId(),
-                user.getEmail(),
-                user.getName(),
-                user.getRole().name(),
-                user.getStatus().name(),
-                user.getCreatedAt(),
-                user.getUpdatedAt()
-        );
-    }
+
 
     @PostMapping("/auth/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {

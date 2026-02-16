@@ -97,7 +97,7 @@ Criterios:
 
 ### 6.1 Single Responsibility Principle (SRP)
 
-#### Hallazgo SRP-01
+#### Hallazgo SRP-01 - VERIFICADO Y CORREGIDO
 
 Archivo: UserService.java  
 Línea(s): 101-114  
@@ -129,7 +129,7 @@ Recomendación técnica: Separar en clases de configuración especializadas: Cor
 
 ### 6.2 Open/Closed Principle (OCP)
 
-#### Hallazgo OCP-01
+#### Hallazgo OCP-01 - VERIFICADO Y CORREGIDO
 
 Archivo: UserRestController.java  
 Línea(s): 68-78  
