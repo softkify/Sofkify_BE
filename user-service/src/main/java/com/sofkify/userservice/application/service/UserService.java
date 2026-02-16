@@ -1,6 +1,8 @@
 // application/service/UserService.java
 package com.sofkify.userservice.application.service;
 
+import com.sofkify.userservice.application.exception.AccountDisabledException;
+import com.sofkify.userservice.application.exception.InvalidCredentialsException;
 import com.sofkify.userservice.application.exception.UserAlreadyExistsException;
 import com.sofkify.userservice.application.exception.UserNotFoundException;
 import com.sofkify.userservice.domain.model.User;
@@ -17,10 +19,12 @@ import java.util.Optional;
 public class UserService implements UserServicePort {
 
     private final UserRepositoryPort userRepository;
+    private final AuthenticationService authenticationService;
 
-    // Inyección de dependencias del Port OUT
-    public UserService(UserRepositoryPort userRepository) {
+    // Inyección de dependencias del Port OUT y AuthenticationService
+    public UserService(UserRepositoryPort userRepository, AuthenticationService authenticationService) {
         this.userRepository = userRepository;
+        this.authenticationService = authenticationService;
     }
 
     @Override
@@ -99,23 +103,11 @@ public class UserService implements UserServicePort {
 
     @Override
     public Optional<User> authenticateUser(String email, String password) {
-        // 1. Buscar usuario por email
-        User user = userRepository.findByEmail(email);
-
-        // 2. Si no existe, retornar vacío
-        if (user == null) {
+        try {
+            User authenticatedUser = authenticationService.authenticate(email, password);
+            return Optional.of(authenticatedUser);
+        } catch (InvalidCredentialsException | AccountDisabledException e) {
             return Optional.empty();
         }
-
-        // 3. Validar contraseña (comparación simple por ahora)
-                if (user.getPassword().equals(password)) {
-            // 4. Solo usuarios activos pueden autenticarse
-            if (user.getStatus() == UserStatus.ACTIVE) {
-                return Optional.of(user);
-            }
-        }
-
-        // 5. Si la contraseña no coincide o está inactivo
-        return Optional.empty();
     }
 }
