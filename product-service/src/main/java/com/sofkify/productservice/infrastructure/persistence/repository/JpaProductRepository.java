@@ -11,4 +11,6 @@ import java.util.UUID;
 @Repository
 public interface JpaProductRepository extends JpaRepository<ProductEntity, UUID> {
     List<ProductEntity> findByStatus(ProductStatus status);
+    
+    boolean existsBySku(String sku);
 }
