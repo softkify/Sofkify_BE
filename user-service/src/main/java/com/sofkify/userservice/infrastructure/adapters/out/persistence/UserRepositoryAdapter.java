@@ -37,10 +37,9 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
     }
 
     @Override
-    public User findByEmail(String email) {
-        UserEntity entity = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado: " + email));
-        return userMapper.toDomain(entity);
+    public Optional<User> findByEmail(String email) {
+        Optional<UserEntity> entity = userRepository.findByEmail(email);
+        return entity.map(userMapper::toDomain);
     }
 
     @Override

@@ -29,24 +29,24 @@ public class AuthenticationService {
      */
     public User authenticate(String email, String password) {
         // 1. Buscar usuario por email
-        User user = userRepository.findByEmail(email);
+        Optional<User> user = userRepository.findByEmail(email);
 
         // 2. Si no existe, lanzar excepción de credenciales inválidas
-        if (user == null) {
+        if (user.isEmpty()) {
             throw new InvalidCredentialsException("Credenciales inválidas: usuario no encontrado");
         }
 
         // 3. Validar contraseña
-        if (!validatePassword(user, password)) {
+        if (!validatePassword(user.orElse(null), password)) {
             throw new InvalidCredentialsException("Credenciales inválidas: contraseña incorrecta");
         }
 
         // 4. Validar estado del usuario
-        if (!validateUserStatus(user)) {
+        if (!validateUserStatus(user.orElse(null))) {
             throw new AccountDisabledException("Cuenta desactivada: el usuario no está activo");
         }
 
-        return user;
+        return user.orElse(null);
     }
 
     /**

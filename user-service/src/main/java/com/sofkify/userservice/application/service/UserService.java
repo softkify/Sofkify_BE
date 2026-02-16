@@ -43,7 +43,8 @@ public class UserService implements UserServicePort {
 
     @Override
     public User findByEmail(String email) {
-        return userRepository.findByEmail(email);
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado: " + email));
     }
 
     @Override

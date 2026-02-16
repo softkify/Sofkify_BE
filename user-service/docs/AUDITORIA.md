@@ -171,7 +171,7 @@ Recomendación técnica: Segregar la interfaz en múltiples interfaces especiali
 
 ### 6.5 Dependency Inversion Principle (DIP)
 
-#### Hallazgo DIP-01
+#### Hallazgo DIP-01 - VERIFICADO Y ARREGLADO
 
 Archivo: UserRepositoryAdapter.java  
 Línea(s): 3, 42  

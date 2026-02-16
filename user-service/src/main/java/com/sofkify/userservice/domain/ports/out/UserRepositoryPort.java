@@ -12,7 +12,7 @@ public interface UserRepositoryPort {
     Optional<User> findById(String id);
 
     // Buscar por email
-    User findByEmail(String email);
+    Optional<User> findByEmail(String email);
 
     // Verificar existencia por email
     boolean existsByEmail(String email);
